@@ -12,4 +12,4 @@
 
 ### 运行截图
 
-![运行截图](doc\1.png)
+![运行截图](https://github.com/ouzexi/html-dressup-tpl/blob/main/doc/1.png)
