@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>换装小游戏模板</title>
+</head>
+<style>
+    body, html {
+        width: 100%;
+        height: 100%;
+        background-color: #ccc;
+    }
+    #main {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+    .person {
+        top: 100px;
+        left: 100px;
+        position: absolute;
+        width: 200px;
+        height: 400px;
+        background: pink;
+    }
+    .head {
+        top: 100px;
+        left: 500px;
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background: palevioletred;
+        cursor: move;
+    }
+    .clothes {
+        top: 100px;
+        left: 700px;
+        position: absolute;
+        width: 100px;
+        height: 110px;
+        background: rgb(230, 173, 230);
+        cursor: move;
+    }
+    .shorts {
+        top: 100px;
+        left: 900px;
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background: skyblue;
+        cursor: move;
+    }
+    .panty {
+        top: 100px;
+        left: 1100px;
+        position: absolute;
+        width: 100px;
+        height: 120px;
+        background: rgb(113, 219, 170);
+        cursor: move;
+    }
+    .hat {
+        top: 100px;
+        left: 1300px;
+        position: absolute;
+        width: 100px;
+        height: 80px;
+        background: rgb(98, 119, 225);
+        cursor: move;
+    }
+</style>
+<body>
+    <div id="main">
+        <div class="person">人</div>
+        <div data-type="hat" class="hat">帽子1</div>
+        <div data-type="cloth" class="head">衣服1</div>
+        <div data-type="cloth" class="clothes">衣服2</div>
+        <div data-type="cloth" class="shorts">衣服3</div>
+        <div data-type="pants" class="panty">裤子1</div>
+    </div>
+</body>
+<script>
+    const person = document.querySelector('.person')
+    const head = document.querySelector('.head')
+    const clothes = document.querySelector('.clothes')
+    const shorts = document.querySelector('.shorts')
+    const panty = document.querySelector('.panty')
+    const hat = document.querySelector('.hat')
+
+    var isDragging = false;
+    var startX, startY;
+    var originalLeft, originalTop;
+
+    let currentDragElement = null; // 新增：记录当前正在拖拽的元素
+
+    // 保存所有元素的初始位置
+    const initialPositions = new Map();
+
+    // 在页面加载时保存每个元素的初始位置
+    function saveInitialPosition(element) {
+        initialPositions.set(element, {
+            left: getComputedStyle(element).left,
+            top: getComputedStyle(element).top
+        });
+    }
+
+    // 获取所有带有data-type属性的元素
+    const draggableElements = document.querySelectorAll('[data-type]');
+
+    // 创建类型位置映射对象
+    const typePositions = {};
+    let totalTypes = 0;
+
+    // 计算每个类型的位置
+    draggableElements.forEach(element => {
+        const type = element.getAttribute('data-type');
+        if (!typePositions[type]) {
+            totalTypes++;
+        }
+    });
+
+    // 为每个类型分配位置（均匀分布）
+    let currentPosition = 1;
+    draggableElements.forEach(element => {
+        const type = element.getAttribute('data-type');
+        if (!typePositions[type]) {
+            // 计算每个类型的相对位置（从0.2到0.8之间均匀分布）
+            typePositions[type] = 0.2 + ((0.6 * (currentPosition - 1)) / (totalTypes - 1));
+            currentPosition++;
+        }
+    });
+
+     // 动态创建attachedElements对象
+    let attachedElements = {};
+    draggableElements.forEach(element => {
+        const type = element.getAttribute('data-type');
+        if (!attachedElements[type]) {
+            attachedElements[type] = null;
+        }
+
+        // 保存所有元素的初始位置
+        saveInitialPosition(element);
+
+        // 为所有可拖拽元素添加mousedown事件
+        handleMouseDown(element);
+    });
+
+    // 创建通用的mousedown事件处理函数
+    function handleMouseDown(element) {
+        element.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            isDragging = true;
+            currentDragElement = element;
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            originalLeft = parseInt(getComputedStyle(element).left);
+            originalTop = parseInt(getComputedStyle(element).top);
+        });
+    }
+
+     // 修改mousemove事件
+     document.addEventListener('mousemove', function(e) {
+        if (!isDragging || !currentDragElement) return;
+        
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        
+        currentDragElement.style.left = (originalLeft + dx) + 'px';
+        currentDragElement.style.top = (originalTop + dy) + 'px';
+    });
+
+    document.addEventListener('mouseup', function() {
+        if (!isDragging || !currentDragElement) return;
+        
+        const personRect = person.getBoundingClientRect();
+        const elementRect = currentDragElement.getBoundingClientRect();
+        
+        if (!(elementRect.right < personRect.left || 
+            elementRect.left > personRect.right || 
+            elementRect.bottom < personRect.top || 
+            elementRect.top > personRect.bottom)) {
+            
+            const currentType = currentDragElement.getAttribute('data-type');
+            
+            // 如果该类型已经有元素被吸附，让其返回原位
+            if (attachedElements[currentType] && attachedElements[currentType] !== currentDragElement) {
+                const elementToReset = attachedElements[currentType];
+                const initialPos = initialPositions.get(elementToReset);
+                elementToReset.style.left = initialPos.left;
+                elementToReset.style.top = initialPos.top;
+                attachedElements[currentType] = null;
+            }
+            
+            // 使用typePositions来确定垂直位置
+            const centerX = personRect.left + (personRect.width - elementRect.width) / 2;
+            const centerY = personRect.top + (personRect.height * typePositions[currentType]);
+            
+            // 设置元素位置
+            currentDragElement.style.left = centerX + 'px';
+            currentDragElement.style.top = centerY - (elementRect.height / 2) + 'px';
+            
+            // 更新当前类型的吸附元素
+            attachedElements[currentType] = currentDragElement;
+        } else {
+            // 返回原始位置
+            const initialPos = initialPositions.get(currentDragElement);
+            currentDragElement.style.left = initialPos.left;
+            currentDragElement.style.top = initialPos.top;
+            
+            // 如果当前拖拽的元素之前是吸附的，清除其记录
+            const currentType = currentDragElement.getAttribute('data-type');
+            if (attachedElements[currentType] === currentDragElement) {
+                attachedElements[currentType] = null;
+            }
+        }
+        
+        isDragging = false;
+        currentDragElement = null;
+    });
+</script>
+</html>
